@@ -1,4 +1,4 @@
-from typing import Final
+import config
 import json
 import google.generativeai as genai
 import requests
@@ -7,17 +7,11 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from telegram._replykeyboardmarkup import ReplyKeyboardMarkup, KeyboardButton
 from geopy.geocoders import Nominatim
 
-TOKEN: Final = '6993107338:AAEW4znT1DkoVRKHc1uFb7RdBFdiWgS8NHE'
-USUARIO_BOT: Final = '@JDJ_DeltoBot'
-
-GeminiAPIKEY: Final = 'AIzaSyB59Ckx9p8LEuSE6ScZ5VQ6BLtMGEojTxo'
-
-genai.configure(api_key=GeminiAPIKEY)
-
+genai.configure(api_key=config.Gemini_API_KEY)
 conversacion = {}
 
-
 # Funciones
+
 
 def cargar_datos_usuarios():
     try:
@@ -32,7 +26,7 @@ def guardar_datos_usuarios(datos_usuarios):
         json.dump(datos_usuarios, f)
 
 
-def obtener_clima(update: Update, context: CallbackContext, datos: dict):
+def obtener_clima(update: Update, datos: dict):
     descripcion = datos['weather'][0]['description']
     temperatura = datos['main']['temp']
     sensacion = datos['main']['feels_like']
@@ -76,7 +70,6 @@ def obtener_clima(update: Update, context: CallbackContext, datos: dict):
         f"\n"
 
     )
-
     return mensaje
 
 
@@ -175,15 +168,15 @@ async def handle_mensaje(update: Update, context: CallbackContext):
             latitud = round(ubicacion.latitude, 4)
             longitud = round(ubicacion.longitude, 4)
 
-            api_url = "https://api.openweathermap.org/data/2.5/weather"
-            params = {'lat': latitud, 'lon': longitud, 'appid': '9216f2e29fa7f9b5bed2764a4ed082ab', 'units': 'metric'}
+            api_url = config.OpenWeather_Api_Url
+            params = {'lat': latitud, 'lon': longitud, 'appid': config.OpenWeather_KEY, 'units': 'metric'}
 
             r = requests.get(api_url, params=params)
             datos = r.json()
             flag_conv = 0
 
             if r.status_code == 200:
-                respuesta = obtener_clima(update, context, datos)
+                respuesta = obtener_clima(update, datos)
 
                 modelo = genai.GenerativeModel('gemini-pro')
                 adicional = modelo.generate_content(
@@ -217,7 +210,7 @@ async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == '__main__':
     print('Iniciando bot...')
 
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(config.TOKEN).build()
 
     app.add_handler(CommandHandler('iniciar', start))
 
